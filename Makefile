@@ -24,5 +24,4 @@ fmt:
 
 ## run	: start test server
 run :
-	source ./.env.local &&\
 	go run ./cmd/gophermart/main.go
