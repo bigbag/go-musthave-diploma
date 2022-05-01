@@ -11,6 +11,8 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/bigbag/go-musthave-diploma/internal/config"
+	"github.com/bigbag/go-musthave-diploma/internal/middleware/userid"
+	"github.com/bigbag/go-musthave-diploma/internal/order"
 	"github.com/bigbag/go-musthave-diploma/internal/storage"
 	"github.com/bigbag/go-musthave-diploma/internal/user"
 	"github.com/bigbag/go-musthave-diploma/internal/utils"
@@ -53,6 +55,14 @@ func New(l logrus.FieldLogger, cfg *config.Config) *Server {
 	us := user.NewUserService(l, ur)
 
 	user.NewUserHandler(f.Group("/api/user/"), l, cfg, us)
+
+	authMiddleware := userid.New(userid.Config{
+		CookieName: cfg.Auth.CookieName,
+		ContextKey: cfg.Auth.ContextKey,
+		Secret:     cfg.Auth.SecretKey,
+	})
+
+	order.NewOrderHandler(f.Group("/api/user/", authMiddleware), l, cfg)
 
 	return &Server{l: l, f: f, sr: sr}
 }

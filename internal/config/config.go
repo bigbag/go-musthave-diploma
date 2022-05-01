@@ -15,8 +15,9 @@ type Storage struct {
 }
 
 type Auth struct {
-	SecretKey   string        `envconfig:"AUTH_SECRET_KEY" default:"simple_auth"`
 	CookieName  string        `envconfig:"AUTH_COOKIE_NAME" default:"auth"`
+	ContextKey  string        `envconfig:"AUTH_CONTEXT_KEY" default:"userid"`
+	SecretKey   string        `envconfig:"AUTH_SECRET_KEY" default:"simple_auth"`
 	ExpiresTime time.Duration `envconfig:"AUTH_EXPIRES_TIME" default:"24h"`
 }
 
