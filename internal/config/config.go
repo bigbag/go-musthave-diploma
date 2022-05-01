@@ -9,13 +9,20 @@ import (
 )
 
 type Storage struct {
-	DSN               string        `envconfig:"DATABASE_URI"`
-	ConnectionTimeout time.Duration `envconfig:"STORAGE_CONNECTION_TIMEOUT" default:"3s"`
-	StopTimeout       time.Duration `envconfig:"STORAGE_STOP_TIMEOUT" default:"3s"`
+	DatabaseDSN string        `envconfig:"DATABASE_URI"`
+	ConnTimeout time.Duration `envconfig:"STORAGE_CONNECTION_TIMEOUT" default:"3s"`
+	StopTimeout time.Duration `envconfig:"STORAGE_STOP_TIMEOUT" default:"3s"`
+}
+
+type Auth struct {
+	SecretKey   string        `envconfig:"AUTH_SECRET_KEY" default:"simple_auth"`
+	CookieName  string        `envconfig:"AUTH_COOKIE_NAME" default:"auth"`
+	ExpiresTime time.Duration `envconfig:"AUTH_EXPIRES_TIME" default:"24h"`
 }
 
 type Config struct {
 	ServiceName string `envconfig:"SERVICE_NAME" default:"gophermart"`
+	Auth        *Auth
 	Server      struct {
 		Listen      string        `envconfig:"RUN_ADDRESS"  default:":8080"`
 		ReadTimeout time.Duration `envconfig:"READ_TIMEOUT" default:"5s"`
@@ -40,7 +47,7 @@ func New() (*Config, error) {
 	}
 
 	flag.StringVar(&cfg.Server.Listen, "a", cfg.Server.Listen, "listen address. env: RUN_ADDRESS")
-	flag.StringVar(&cfg.Storage.DSN, "d", cfg.Storage.DSN, "database dsn. env: DATABASE_URI")
+	flag.StringVar(&cfg.Storage.DatabaseDSN, "d", cfg.Storage.DatabaseDSN, "database dsn. env: DATABASE_URI")
 	flag.StringVar(&cfg.AccrualURL, "r", cfg.AccrualURL, "accrual service url. env: ACCRUAL_SYSTEM_ADDRESS")
 	flag.Parse()
 

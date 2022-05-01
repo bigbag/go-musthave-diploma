@@ -1,7 +1,7 @@
 package app
 
 import (
-	// "context"
+	"context"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -11,12 +11,15 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/bigbag/go-musthave-diploma/internal/config"
+	"github.com/bigbag/go-musthave-diploma/internal/storage"
+	"github.com/bigbag/go-musthave-diploma/internal/user"
 	"github.com/bigbag/go-musthave-diploma/internal/utils"
 )
 
 type Server struct {
-	l logrus.FieldLogger
-	f *fiber.App
+	l  logrus.FieldLogger
+	f  *fiber.App
+	sr *storage.StorageRepository
 }
 
 func New(l logrus.FieldLogger, cfg *config.Config) *Server {
@@ -42,21 +45,16 @@ func New(l logrus.FieldLogger, cfg *config.Config) *Server {
 		Level: compress.LevelBestCompression,
 	}))
 
-	// f.Use(userid.New(userid.Config{
-	// 	Secret:     cfg.UserCookieSecret,
-	// 	ContextKey: cfg.UserContextKey,
-	// }))
+	ctxBg := context.Background()
+	sr, _ := storage.NewStorageRepository(
+		ctxBg, cfg.Storage.DatabaseDSN, cfg.Storage.ConnTimeout,
+	)
+	ur := user.NewUserRepository(ctxBg, l, sr, cfg.Storage.ConnTimeout)
+	us := user.NewUserService(l, ur)
 
-	// ctxBg := context.Background()
-	// urlStorage, _ := storage.NewStorageService(ctxBg, cfg.Storage)
+	user.NewUserHandler(f.Group("/api/user/"), l, cfg, us)
 
-	// urlRepository := url.NewURLRepository(urlStorage)
-
-	// urlPool := url.NewTaskPool(ctxBg, l, urlRepository)
-	// urlService := url.NewURLService(l, urlRepository, urlPool)
-	// url.NewURLHandler(f.Group(""), urlService, cfg, l)
-
-	return &Server{l: l, f: f}
+	return &Server{l: l, f: f, sr: sr}
 }
 
 func (s *Server) Start(addr string) error {
@@ -64,5 +62,6 @@ func (s *Server) Start(addr string) error {
 }
 
 func (s *Server) Stop() error {
+	s.sr.Close()
 	return s.f.Shutdown()
 }

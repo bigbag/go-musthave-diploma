@@ -12,6 +12,7 @@ import (
 
 	"github.com/bigbag/go-musthave-diploma/internal/app"
 	"github.com/bigbag/go-musthave-diploma/internal/config"
+	"github.com/bigbag/go-musthave-diploma/internal/utils"
 )
 
 func getLogger(cfg *config.Config, baseLogger *stdLog.Logger) logrus.StdLogger {
@@ -67,6 +68,11 @@ func main() {
 		l      = getLogger(cfg, baseLogger)
 		server = app.New(l.(logrus.FieldLogger), cfg)
 	)
+
+	m, err := utils.RunMigration(cfg.Storage.DatabaseDSN)
+	if err != nil && !m {
+		l.Fatal(err)
+	}
 
 	// start HTTP API server
 	go func() {

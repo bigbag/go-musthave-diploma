@@ -9,6 +9,7 @@ RUN go build -o /gophermart cmd/gophermart/main.go
 FROM gcr.io/distroless/base-debian11
 WORKDIR /
 COPY --from=build /gophermart /gophermart
+COPY --from=build /app/migration /migration
 EXPOSE 8080
 USER nonroot:nonroot
 ENTRYPOINT ["/gophermart"]
