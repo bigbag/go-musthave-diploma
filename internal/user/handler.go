@@ -12,7 +12,7 @@ import (
 	"github.com/bigbag/go-musthave-diploma/internal/utils"
 )
 
-type UserHandler struct {
+type userHandler struct {
 	log logrus.FieldLogger
 	cfg *config.Config
 	us  *UserService
@@ -25,13 +25,13 @@ func NewUserHandler(
 	us *UserService,
 
 ) {
-	handler := &UserHandler{log: l, cfg: cfg, us: us}
+	handler := &userHandler{log: l, cfg: cfg, us: us}
 
 	r.Post("register", handler.createUser)
 	r.Post("login", handler.authUser)
 }
 
-func (h *UserHandler) saveAuthCookie(c *fiber.Ctx, userID int) error {
+func (h *userHandler) saveAuthCookie(c *fiber.Ctx, userID int) error {
 	expiresTime := time.Now().Add(time.Hour * h.cfg.Auth.ExpiresTime)
 	claims := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.StandardClaims{
 		Issuer:    strconv.Itoa(userID),
@@ -55,7 +55,7 @@ func (h *UserHandler) saveAuthCookie(c *fiber.Ctx, userID int) error {
 
 }
 
-func (h *UserHandler) authUser(c *fiber.Ctx) error {
+func (h *userHandler) authUser(c *fiber.Ctx) error {
 	requestUser := new(RequestUser)
 	if err := c.BodyParser(requestUser); err != nil {
 		return utils.SendJSONError(
@@ -81,7 +81,7 @@ func (h *UserHandler) authUser(c *fiber.Ctx) error {
 	}
 }
 
-func (h *UserHandler) createUser(c *fiber.Ctx) error {
+func (h *userHandler) createUser(c *fiber.Ctx) error {
 	requestUser := new(RequestUser)
 	if err := c.BodyParser(requestUser); err != nil {
 		return utils.SendJSONError(
