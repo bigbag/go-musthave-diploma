@@ -3,31 +3,29 @@ package user
 import (
 	"context"
 	"database/sql"
+	"time"
+
 	"github.com/jackc/pgerrcode"
 	"github.com/lib/pq"
 	"github.com/sirupsen/logrus"
-	"time"
-
-	"github.com/bigbag/go-musthave-diploma/internal/storage"
 )
 
 type Repository struct {
 	ctx         context.Context
 	conn        *sql.DB
 	connTimeout time.Duration
-	sr          *storage.Repository
 }
 
 func NewRepository(
 	ctx context.Context,
 	l logrus.FieldLogger,
-	sr *storage.Repository,
+	conn *sql.DB,
 	connTimeout time.Duration,
 ) *Repository {
 	return &Repository{
 		ctx:         ctx,
 		connTimeout: connTimeout,
-		conn:        sr.GetConnect(),
+		conn:        conn,
 	}
 }
 

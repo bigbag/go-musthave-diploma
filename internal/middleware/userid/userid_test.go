@@ -58,6 +58,7 @@ func Test_User_Cookie(t *testing.T) {
 	})
 
 	resp, err := app.Test(req)
+
 	utils.AssertEqual(t, nil, err, "app.Test(req)")
 	utils.AssertEqual(t, 200, resp.StatusCode, "Status code")
 
@@ -65,6 +66,8 @@ func Test_User_Cookie(t *testing.T) {
 	utils.AssertEqual(t, nil, err)
 
 	utils.AssertEqual(t, strconv.Itoa(userID), string(body))
+
+	defer resp.Body.Close()
 }
 
 func Test_User_Cookie_Next_Error(t *testing.T) {
@@ -83,6 +86,7 @@ func Test_User_Cookie_Next_Error(t *testing.T) {
 	})
 
 	resp, err := app.Test(req)
+
 	utils.AssertEqual(t, nil, err, "app.Test(req)")
 	utils.AssertEqual(t, 500, resp.StatusCode, "Status code")
 	utils.AssertEqual(t, "", resp.Header.Get(fiber.HeaderContentEncoding))
@@ -90,6 +94,8 @@ func Test_User_Cookie_Next_Error(t *testing.T) {
 	body, err := ioutil.ReadAll(resp.Body)
 	utils.AssertEqual(t, nil, err)
 	utils.AssertEqual(t, "next error", string(body))
+
+	defer resp.Body.Close()
 }
 
 func Test_User_Cookie_Next(t *testing.T) {
@@ -103,4 +109,6 @@ func Test_User_Cookie_Next(t *testing.T) {
 	resp, err := app.Test(httptest.NewRequest("GET", "/", nil))
 	utils.AssertEqual(t, nil, err)
 	utils.AssertEqual(t, fiber.StatusNotFound, resp.StatusCode)
+
+	defer resp.Body.Close()
 }
