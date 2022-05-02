@@ -5,17 +5,17 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type UserService struct {
-	l  logrus.FieldLogger
-	ur *UserRepository
+type Service struct {
+	l logrus.FieldLogger
+	r *Repository
 }
 
-func NewUserService(l logrus.FieldLogger, ur *UserRepository) *UserService {
-	return &UserService{l: l, ur: ur}
+func NewService(l logrus.FieldLogger, r *Repository) *Service {
+	return &Service{l: l, r: r}
 }
 
-func (us *UserService) Get(requestUser *RequestUser) (*User, error) {
-	user, err := us.ur.Get(requestUser.Login)
+func (s *Service) Get(requestUser *RequestUser) (*User, error) {
+	user, err := s.r.Get(requestUser.Login)
 	if err != nil && err == sql.ErrNoRows {
 		return nil, ErrUserNotFound
 	}
@@ -29,11 +29,11 @@ func (us *UserService) Get(requestUser *RequestUser) (*User, error) {
 	return user, nil
 }
 
-func (us *UserService) Save(requestUser *RequestUser) (*User, error) {
-	err := us.ur.Save(requestUser)
+func (s *Service) Save(requestUser *RequestUser) (*User, error) {
+	err := s.r.Save(requestUser)
 	if err != nil {
 		return nil, err
 	}
 
-	return us.Get(requestUser)
+	return s.Get(requestUser)
 }
