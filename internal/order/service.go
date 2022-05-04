@@ -15,8 +15,6 @@ func NewService(l logrus.FieldLogger, r *Repository, w *Worker) *Service {
 }
 
 func (s *Service) CreateOrder(userID string, orderID string) error {
-	s.w.Add(NewTask(orderID))
-
 	order, err := s.r.Get(orderID)
 	if err != nil {
 		return err
