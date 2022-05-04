@@ -163,13 +163,15 @@ func (r *Repository) UpdateOrder(order *Order) error {
 		return err
 	}
 
-	walletQuery := `UPDATE wallets 
-				SET balance = balance + $1
-				WHERE user_id = $2;`
-	if _, err := tx.ExecContext(
-		ctx, walletQuery, order.Amount, order.UserID,
-	); err != nil {
-		return err
+	if order.IsFinal {
+		walletQuery := `UPDATE wallets 
+					SET balance = balance + $1
+					WHERE user_id = $2;`
+		if _, err := tx.ExecContext(
+			ctx, walletQuery, order.Amount, order.UserID,
+		); err != nil {
+			return err
+		}
 	}
 
 	if err = tx.Commit(); err != nil {

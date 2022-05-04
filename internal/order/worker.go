@@ -64,7 +64,7 @@ func (w *Worker) process(t *Task) error {
 	}
 	w.l.Info("worker: accrual info ", info)
 
-	if info.IsFinal {
+	if info.Status != NEW {
 		w.l.Info("worker: save final state of order: ", t.OrderID)
 
 		err = w.or.UpdateOrder(
