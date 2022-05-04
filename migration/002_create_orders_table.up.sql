@@ -9,4 +9,3 @@ CREATE TABLE IF NOT EXISTS orders
     is_final        bool default false not null
 );
 CREATE UNIQUE INDEX IF NOT EXISTS orders_idx ON orders USING btree (id);
-CREATE UNIQUE INDEX IF NOT EXISTS user_id_idx ON orders USING btree (user_id);

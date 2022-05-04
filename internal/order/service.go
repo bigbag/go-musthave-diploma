@@ -7,11 +7,11 @@ import (
 type Service struct {
 	l logrus.FieldLogger
 	r *Repository
-	p *TaskPool
+	w *Worker
 }
 
-func NewService(l logrus.FieldLogger, r *Repository, p *TaskPool) *Service {
-	return &Service{l: l, r: r, p: p}
+func NewService(l logrus.FieldLogger, r *Repository, w *Worker) *Service {
+	return &Service{l: l, r: r, w: w}
 }
 
 func (s *Service) CreateOrder(userID string, orderID string) error {
@@ -21,23 +21,24 @@ func (s *Service) CreateOrder(userID string, orderID string) error {
 	}
 
 	if order.UserID != "" && order.UserID != userID {
-		return ErrOrderAlreadyCreatedOtherUser
+		return ErrAlreadyCreatedOtherUser
 	}
 	if order.ID != "" {
-		return ErrOrderAlreadyExist
+		return ErrAlreadyExist
 	}
+
 	err = s.r.CreateNew(userID, orderID)
 	if err != nil {
 		return err
 	}
 
-	return s.p.Push(NewTask(orderID))
+	return s.w.Add(&Task{OrderID: orderID, UserID: userID})
 }
 
 func (s *Service) FetchUserOrders(userID string) ([]*ResponseOrder, error) {
 	orders, err := s.r.GetAllByUserID(userID)
 	if len(orders) == 0 {
-		return nil, ErrOrdersNotFound
+		return nil, ErrNotFound
 	}
 
 	result := make([]*ResponseOrder, 0, 100)

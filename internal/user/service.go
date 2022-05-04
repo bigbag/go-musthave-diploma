@@ -15,7 +15,7 @@ func NewService(l logrus.FieldLogger, r *Repository) *Service {
 }
 
 func (s *Service) Get(requestUser *RequestUser) (*User, error) {
-	user, err := s.r.Get(requestUser.Login)
+	user, err := s.r.Get(requestUser.ID)
 	if err != nil && err == sql.ErrNoRows {
 		return nil, ErrUserNotFound
 	}

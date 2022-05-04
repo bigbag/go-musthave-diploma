@@ -12,6 +12,7 @@ import (
 
 type Repository struct {
 	ctx         context.Context
+	l           logrus.FieldLogger
 	conn        *sql.DB
 	connTimeout time.Duration
 }
@@ -24,6 +25,7 @@ func NewRepository(
 ) *Repository {
 	return &Repository{
 		ctx:         ctx,
+		l:           l,
 		connTimeout: connTimeout,
 		conn:        conn,
 	}
@@ -36,7 +38,7 @@ func (r *Repository) Get(orderID string) (*Order, error) {
 	order := &Order{}
 
 	sqlStatement := `SELECT id, user_id, amount, status, uploaded_at
-					FROM orders WHERE id=$1;`
+						FROM orders WHERE id=$1;`
 	row := r.conn.QueryRowContext(ctx, sqlStatement, orderID)
 	err := row.Scan(
 		&order.ID,
@@ -57,10 +59,10 @@ func (r *Repository) GetAllByUserID(userID string) ([]*Order, error) {
 	ctx, cancel := context.WithTimeout(r.ctx, r.connTimeout)
 	defer cancel()
 
-	sqlStatement := `SELECT id, amount, status, uploaded_at 
-					FROM orders where user_id=$1 
-					ORDER BY uploaded_at DESC;`
-	rows, err := r.conn.QueryContext(ctx, sqlStatement, userID)
+	query := `SELECT id, amount, status, uploaded_at 
+						FROM orders where user_id=$1 
+						ORDER BY uploaded_at DESC;`
+	rows, err := r.conn.QueryContext(ctx, query, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -83,34 +85,35 @@ func (r *Repository) GetAllByUserID(userID string) ([]*Order, error) {
 	return orders, nil
 }
 
-func (r *Repository) GetAllForChecking() ([]string, error) {
+func (r *Repository) GetTaskForChecking() ([]*Task, error) {
 	ctx, cancel := context.WithTimeout(r.ctx, r.connTimeout)
 	defer cancel()
 
-	sqlStatement := `SELECT id FROM orders where is_final=false;`
-	rows, err := r.conn.QueryContext(ctx, sqlStatement)
+	query := `SELECT id, user_id FROM orders where is_final=false;`
+	rows, err := r.conn.QueryContext(ctx, query)
 	if err != nil && err == sql.ErrNoRows {
-		return make([]string, 0), nil
+		return make([]*Task, 0), nil
 	}
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var orderID string
-	orderIDs := make([]string, 0, 100)
+	var task *Task
+	tasks := make([]*Task, 0, 100)
 	for rows.Next() {
-		err = rows.Scan(&orderID)
+		task = &Task{}
+		err = rows.Scan(&task.OrderID, &task.UserID)
 		if err != nil {
 			return nil, err
 		}
-		orderIDs = append(orderIDs, orderID)
+		tasks = append(tasks, task)
 	}
 	err = rows.Err()
 	if err != nil {
 		return nil, err
 	}
-	return orderIDs, nil
+	return tasks, nil
 }
 
 func (r *Repository) CreateNew(userID string, orderID string) error {
@@ -118,8 +121,8 @@ func (r *Repository) CreateNew(userID string, orderID string) error {
 	defer cancel()
 
 	query := `INSERT INTO 
-			orders(id, user_id, amount, uploaded_at, status) 
-			VALUES($1, $2, $3, $4, $5);`
+				orders(id, user_id, amount, uploaded_at, status) 
+				VALUES($1, $2, $3, $4, $5);`
 	if _, err := r.conn.ExecContext(
 		ctx,
 		query,
@@ -131,7 +134,7 @@ func (r *Repository) CreateNew(userID string, orderID string) error {
 	); err != nil {
 		if err, ok := err.(*pq.Error); ok {
 			if err.Code == pgerrcode.UniqueViolation {
-				return ErrOrderAlreadyExist
+				return ErrAlreadyExist
 			}
 			return err
 		}
@@ -140,28 +143,37 @@ func (r *Repository) CreateNew(userID string, orderID string) error {
 	return nil
 }
 
-func (r *Repository) Update(
-	orderID string,
-	status string,
-	amount float64,
-	isFinal bool,
-) error {
+func (r *Repository) UpdateOrder(order *Order) error {
 	ctx, cancel := context.WithTimeout(r.ctx, r.connTimeout)
 	defer cancel()
-	query := `UPDATE orders 
-			SET status = $1, amount = $2, is_final = $3
-			WHERE id = $4;`
-	if _, err := r.conn.ExecContext(
-		ctx,
-		query,
-		status,
-		amount,
-		isFinal,
-		orderID,
+
+	tx, err := r.conn.BeginTx(r.ctx, nil)
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	orderQuery := `UPDATE orders 
+				SET status = $1, amount = $2, is_final = $3
+				WHERE id = $4;`
+	if _, err := tx.ExecContext(
+		ctx, orderQuery, order.Status, order.Amount, order.IsFinal, order.ID,
 	); err != nil {
-		if err, ok := err.(*pq.Error); ok {
-			return err
-		}
+		return err
+	}
+
+	walletQuery := `UPDATE wallets 
+				SET balance = balance + $1
+				WHERE user_id = $2;`
+	if _, err := tx.ExecContext(
+		ctx, walletQuery, order.Amount, order.UserID,
+	); err != nil {
+		return err
+	}
+
+	if err = tx.Commit(); err != nil {
+		return err
 	}
 
 	return nil
