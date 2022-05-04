@@ -8,18 +8,18 @@ import (
 	_ "github.com/lib/pq"
 )
 
-type StorageRepository struct {
+type Repository struct {
 	ctx         context.Context
 	conn        *sql.DB
 	connTimeout time.Duration
 }
 
-func NewStorageRepository(
+func NewRepository(
 	ctx context.Context,
 	databaseDSN string,
 	connTimeout time.Duration,
-) (*StorageRepository, error) {
-	r := &StorageRepository{
+) (*Repository, error) {
+	r := &Repository{
 		ctx:         ctx,
 		connTimeout: connTimeout * time.Second,
 	}
@@ -33,17 +33,17 @@ func NewStorageRepository(
 	return r, nil
 }
 
-func (r *StorageRepository) GetConnect() *sql.DB {
+func (r *Repository) GetConnect() *sql.DB {
 	return r.conn
 }
 
-func (r *StorageRepository) Status() error {
+func (r *Repository) Status() error {
 	ctx, cancel := context.WithTimeout(r.ctx, r.connTimeout)
 	defer cancel()
 
 	return r.conn.PingContext(ctx)
 }
 
-func (r *StorageRepository) Close() error {
+func (r *Repository) Close() error {
 	return r.conn.Close()
 }

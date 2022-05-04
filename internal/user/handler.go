@@ -12,26 +12,26 @@ import (
 	"github.com/bigbag/go-musthave-diploma/internal/utils"
 )
 
-type UserHandler struct {
+type handler struct {
 	log logrus.FieldLogger
 	cfg *config.Config
-	us  *UserService
+	s   *Service
 }
 
-func NewUserHandler(
+func NewHandler(
 	r fiber.Router,
 	l logrus.FieldLogger,
 	cfg *config.Config,
-	us *UserService,
+	s *Service,
 
 ) {
-	handler := &UserHandler{log: l, cfg: cfg, us: us}
+	handler := &handler{log: l, cfg: cfg, s: s}
 
 	r.Post("register", handler.createUser)
 	r.Post("login", handler.authUser)
 }
 
-func (h *UserHandler) saveAuthCookie(c *fiber.Ctx, userID int) error {
+func (h *handler) saveAuthCookie(c *fiber.Ctx, userID int) error {
 	expiresTime := time.Now().Add(time.Hour * h.cfg.Auth.ExpiresTime)
 	claims := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.StandardClaims{
 		Issuer:    strconv.Itoa(userID),
@@ -55,7 +55,7 @@ func (h *UserHandler) saveAuthCookie(c *fiber.Ctx, userID int) error {
 
 }
 
-func (h *UserHandler) authUser(c *fiber.Ctx) error {
+func (h *handler) authUser(c *fiber.Ctx) error {
 	requestUser := new(RequestUser)
 	if err := c.BodyParser(requestUser); err != nil {
 		return utils.SendJSONError(
@@ -68,7 +68,7 @@ func (h *UserHandler) authUser(c *fiber.Ctx) error {
 		)
 	}
 
-	switch user, err := h.us.Get(requestUser); err {
+	switch user, err := h.s.Get(requestUser); err {
 	case ErrUserNotFound:
 		return utils.SendJSONError(c, fiber.StatusNotFound, err.Error())
 	case ErrNotValidCredentials:
@@ -81,7 +81,7 @@ func (h *UserHandler) authUser(c *fiber.Ctx) error {
 	}
 }
 
-func (h *UserHandler) createUser(c *fiber.Ctx) error {
+func (h *handler) createUser(c *fiber.Ctx) error {
 	requestUser := new(RequestUser)
 	if err := c.BodyParser(requestUser); err != nil {
 		return utils.SendJSONError(
@@ -94,7 +94,7 @@ func (h *UserHandler) createUser(c *fiber.Ctx) error {
 		)
 	}
 
-	switch user, err := h.us.Save(requestUser); err {
+	switch user, err := h.s.Save(requestUser); err {
 	case ErrLoginAlreadyExist:
 		return utils.SendJSONError(c, fiber.StatusConflict, err.Error())
 	case nil:

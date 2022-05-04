@@ -10,7 +10,10 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/sirupsen/logrus"
 
+	"github.com/bigbag/go-musthave-diploma/internal/accrual"
 	"github.com/bigbag/go-musthave-diploma/internal/config"
+	"github.com/bigbag/go-musthave-diploma/internal/middleware/userid"
+	"github.com/bigbag/go-musthave-diploma/internal/order"
 	"github.com/bigbag/go-musthave-diploma/internal/storage"
 	"github.com/bigbag/go-musthave-diploma/internal/user"
 	"github.com/bigbag/go-musthave-diploma/internal/utils"
@@ -19,7 +22,8 @@ import (
 type Server struct {
 	l  logrus.FieldLogger
 	f  *fiber.App
-	sr *storage.StorageRepository
+	sr *storage.Repository
+	p  *order.TaskPool
 }
 
 func New(l logrus.FieldLogger, cfg *config.Config) *Server {
@@ -46,15 +50,29 @@ func New(l logrus.FieldLogger, cfg *config.Config) *Server {
 	}))
 
 	ctxBg := context.Background()
-	sr, _ := storage.NewStorageRepository(
+	sr, _ := storage.NewRepository(
 		ctxBg, cfg.Storage.DatabaseDSN, cfg.Storage.ConnTimeout,
 	)
-	ur := user.NewUserRepository(ctxBg, l, sr, cfg.Storage.ConnTimeout)
-	us := user.NewUserService(l, ur)
+	ur := user.NewRepository(ctxBg, l, sr.GetConnect(), cfg.Storage.ConnTimeout)
+	us := user.NewService(l, ur)
 
-	user.NewUserHandler(f.Group("/api/user/"), l, cfg, us)
+	user.NewHandler(f.Group("/api/user/"), l, cfg, us)
 
-	return &Server{l: l, f: f, sr: sr}
+	authMiddleware := userid.New(userid.Config{
+		CookieName: cfg.Auth.CookieName,
+		ContextKey: cfg.Auth.ContextKey,
+		Secret:     cfg.Auth.SecretKey,
+	})
+
+	ar := accrual.NewRepository(ctxBg, l, cfg.AccrualURL)
+
+	or := order.NewRepository(ctxBg, l, sr.GetConnect(), cfg.Storage.ConnTimeout)
+	op := order.NewTaskPool(ctxBg, l, or, ar)
+
+	os := order.NewService(l, or, op)
+	order.NewHandler(f.Group("/api/user/", authMiddleware), l, cfg, os)
+
+	return &Server{l: l, f: f, sr: sr, p: op}
 }
 
 func (s *Server) Start(addr string) error {
@@ -62,6 +80,7 @@ func (s *Server) Start(addr string) error {
 }
 
 func (s *Server) Stop() error {
+	s.p.Close()
 	s.sr.Close()
 	return s.f.Shutdown()
 }
