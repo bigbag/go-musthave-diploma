@@ -2,7 +2,6 @@ package user
 
 import (
 	"github.com/dgrijalva/jwt-go"
-	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -31,10 +30,10 @@ func NewHandler(
 	r.Post("login", handler.authUser)
 }
 
-func (h *handler) saveAuthCookie(c *fiber.Ctx, userID int) error {
+func (h *handler) saveAuthCookie(c *fiber.Ctx, userID string) error {
 	expiresTime := time.Now().Add(time.Hour * h.cfg.Auth.ExpiresTime)
 	claims := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.StandardClaims{
-		Issuer:    strconv.Itoa(userID),
+		Issuer:    userID,
 		ExpiresAt: expiresTime.Unix(),
 	})
 
@@ -62,7 +61,7 @@ func (h *handler) authUser(c *fiber.Ctx) error {
 			c, fiber.StatusBadRequest, "Please specify a valid user parameters",
 		)
 	}
-	if requestUser.Login == "" || requestUser.Password == "" {
+	if requestUser.ID == "" || requestUser.Password == "" {
 		return utils.SendJSONError(
 			c, fiber.StatusBadRequest, "Please specify a valid user parameters",
 		)
@@ -88,14 +87,14 @@ func (h *handler) createUser(c *fiber.Ctx) error {
 			c, fiber.StatusBadRequest, "Please specify a valid user parameters",
 		)
 	}
-	if requestUser.Login == "" || requestUser.Password == "" {
+	if requestUser.ID == "" || requestUser.Password == "" {
 		return utils.SendJSONError(
 			c, fiber.StatusBadRequest, "Please specify a valid user parameters",
 		)
 	}
 
 	switch user, err := h.s.Save(requestUser); err {
-	case ErrLoginAlreadyExist:
+	case ErrAlreadyExist:
 		return utils.SendJSONError(c, fiber.StatusConflict, err.Error())
 	case nil:
 		h.saveAuthCookie(c, user.ID)

@@ -1,5 +1,7 @@
 package accrual
 
+import "time"
+
 const (
 	NEW        = "NEW"
 	REGISTERED = "REGISTERED"
@@ -19,5 +21,5 @@ type Response struct {
 	Amount  float64
 	Status  string
 	IsFinal bool
-	Timeout int64
+	Timeout time.Duration
 }

@@ -43,9 +43,9 @@ func (h *handler) saveOrder(c *fiber.Ctx) error {
 	userID := c.Locals(h.cfg.Auth.ContextKey).(string)
 
 	switch err = h.s.CreateOrder(userID, orderID); err {
-	case ErrOrderAlreadyExist:
+	case ErrAlreadyExist:
 		return c.Status(fiber.StatusOK).SendString("")
-	case ErrOrderAlreadyCreatedOtherUser:
+	case ErrAlreadyCreatedOtherUser:
 		return utils.SendJSONError(c, fiber.StatusConflict, err.Error())
 	case nil:
 		return c.Status(fiber.StatusAccepted).SendString("")
@@ -58,7 +58,7 @@ func (h *handler) getOrders(c *fiber.Ctx) error {
 	userID := c.Locals(h.cfg.Auth.ContextKey).(string)
 
 	switch orders, err := h.s.FetchUserOrders(userID); err {
-	case ErrOrdersNotFound:
+	case ErrNotFound:
 		return utils.SendJSONError(c, fiber.StatusNoContent, err.Error())
 	case nil:
 		return c.Status(fiber.StatusOK).JSON(orders)

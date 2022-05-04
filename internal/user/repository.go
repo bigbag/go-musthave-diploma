@@ -12,6 +12,7 @@ import (
 
 type Repository struct {
 	ctx         context.Context
+	l           logrus.FieldLogger
 	conn        *sql.DB
 	connTimeout time.Duration
 }
@@ -24,20 +25,21 @@ func NewRepository(
 ) *Repository {
 	return &Repository{
 		ctx:         ctx,
+		l:           l,
 		connTimeout: connTimeout,
 		conn:        conn,
 	}
 }
 
-func (r *Repository) Get(login string) (*User, error) {
+func (r *Repository) Get(userID string) (*User, error) {
 	ctx, cancel := context.WithTimeout(r.ctx, r.connTimeout)
 	defer cancel()
 
 	user := &User{}
 
-	sqlStatement := `SELECT id, login, password FROM users WHERE login=$1;`
-	row := r.conn.QueryRowContext(ctx, sqlStatement, login)
-	err := row.Scan(&user.ID, &user.Login, &user.Password)
+	query := `SELECT id, password FROM users WHERE id=$1;`
+	row := r.conn.QueryRowContext(ctx, query, userID)
+	err := row.Scan(&user.ID, &user.Password)
 
 	return user, err
 }
@@ -46,14 +48,37 @@ func (r *Repository) Save(user *RequestUser) error {
 	ctx, cancel := context.WithTimeout(r.ctx, r.connTimeout)
 	defer cancel()
 
-	query := `INSERT INTO users(login, password) VALUES($1, $2);`
-	if _, err := r.conn.ExecContext(ctx, query, user.Login, user.HexPassword()); err != nil {
+	tx, err := r.conn.BeginTx(r.ctx, nil)
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	usersQuery := `INSERT INTO users(id, password) VALUES($1, $2);`
+	if _, err := tx.ExecContext(
+		ctx, usersQuery, user.ID, user.HexPassword(),
+	); err != nil {
 		if err, ok := err.(*pq.Error); ok {
 			if err.Code == pgerrcode.UniqueViolation {
-				return ErrLoginAlreadyExist
+				return ErrAlreadyExist
 			}
-			return err
 		}
+		return err
+	}
+
+	walletsQuery := `INSERT INTO wallets(user_id) VALUES($1);`
+	if _, err := tx.ExecContext(ctx, walletsQuery, user.ID); err != nil {
+		if err, ok := err.(*pq.Error); ok {
+			if err.Code == pgerrcode.UniqueViolation {
+				return ErrAlreadyExist
+			}
+		}
+		return err
+	}
+
+	if err = tx.Commit(); err != nil {
+		return err
 	}
 
 	return nil
