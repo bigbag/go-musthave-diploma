@@ -17,6 +17,7 @@ import (
 	"github.com/bigbag/go-musthave-diploma/internal/storage"
 	"github.com/bigbag/go-musthave-diploma/internal/user"
 	"github.com/bigbag/go-musthave-diploma/internal/utils"
+	"github.com/bigbag/go-musthave-diploma/internal/wallet"
 )
 
 type Server struct {
@@ -71,6 +72,11 @@ func New(l logrus.FieldLogger, cfg *config.Config) *Server {
 
 	os := order.NewService(l, or, op)
 	order.NewHandler(f.Group("/api/user/", authMiddleware), l, cfg, os)
+
+	wr := wallet.NewRepository(ctxBg, l, sr.GetConnect(), cfg.Storage.ConnTimeout)
+	ws := wallet.NewService(l, wr)
+
+	wallet.NewHandler(f.Group("/api/user/balance"), l, cfg, ws)
 
 	return &Server{l: l, f: f, sr: sr, p: op}
 }
