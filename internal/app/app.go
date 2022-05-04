@@ -24,7 +24,7 @@ type Server struct {
 	l  logrus.FieldLogger
 	f  *fiber.App
 	sr *storage.Repository
-	p  *order.TaskPool
+	ow *order.Worker
 }
 
 func New(l logrus.FieldLogger, cfg *config.Config) *Server {
@@ -68,9 +68,10 @@ func New(l logrus.FieldLogger, cfg *config.Config) *Server {
 	ar := accrual.NewRepository(ctxBg, l, cfg.AccrualURL)
 
 	or := order.NewRepository(ctxBg, l, sr.GetConnect(), cfg.Storage.ConnTimeout)
-	op := order.NewTaskPool(ctxBg, l, or, ar)
+	ow := order.NewWorker(l, or, ar)
+	ow.Init()
 
-	os := order.NewService(l, or, op)
+	os := order.NewService(l, or, ow)
 	order.NewHandler(f.Group("/api/user/", authMiddleware), l, cfg, os)
 
 	wr := wallet.NewRepository(ctxBg, l, sr.GetConnect(), cfg.Storage.ConnTimeout)
@@ -78,7 +79,7 @@ func New(l logrus.FieldLogger, cfg *config.Config) *Server {
 
 	wallet.NewHandler(f.Group("/api/user/balance"), l, cfg, ws)
 
-	return &Server{l: l, f: f, sr: sr, p: op}
+	return &Server{l: l, f: f, sr: sr, ow: ow}
 }
 
 func (s *Server) Start(addr string) error {
@@ -86,7 +87,7 @@ func (s *Server) Start(addr string) error {
 }
 
 func (s *Server) Stop() error {
-	s.p.Close()
+	s.ow.Close()
 	s.sr.Close()
 	return s.f.Shutdown()
 }

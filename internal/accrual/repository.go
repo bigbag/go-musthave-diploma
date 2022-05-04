@@ -6,11 +6,12 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/sirupsen/logrus"
 )
 
-const RepeatTimeout int64 = 1
+const RepeatTimeout time.Duration = 1
 
 type Repository struct {
 	ctx context.Context
@@ -48,7 +49,7 @@ func (r *Repository) Get(orderID string) (*Response, error) {
 			Amount:  0,
 			Status:  PROCESSING,
 			IsFinal: false,
-			Timeout: int64(timeout),
+			Timeout: time.Duration(timeout),
 		}, nil
 
 	case http.StatusOK:
