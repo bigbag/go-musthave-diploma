@@ -13,10 +13,9 @@ const (
 )
 
 var (
-	ErrOrderAlreadyExist            = errors.New("order already exist")
-	ErrOrderAlreadyCreatedOtherUser = errors.New("order already created by other user")
-	ErrOrderNotFound                = errors.New("order not found")
-	ErrOrdersNotFound               = errors.New("orders not found")
+	ErrAlreadyExist            = errors.New("order already exist")
+	ErrAlreadyCreatedOtherUser = errors.New("order already created by other user")
+	ErrNotFound                = errors.New("orders not found")
 )
 
 type Order struct {
@@ -25,7 +24,7 @@ type Order struct {
 	Amount     float64
 	Status     string
 	UploadedAt time.Time
-	IsChecked  bool
+	IsFinal    bool
 }
 
 type ResponseOrder struct {

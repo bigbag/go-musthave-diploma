@@ -33,7 +33,13 @@ func NewHandler(
 
 func (h *handler) getWallet(c *fiber.Ctx) error {
 	userID := c.Locals(h.cfg.Auth.ContextKey).(string)
-	return c.Status(fiber.StatusOK).SendString(userID)
+
+	switch w, err := h.s.FetchWallet(userID); err {
+	case nil:
+		return c.Status(fiber.StatusOK).JSON(w)
+	default:
+		return utils.SendJSONError(c, fiber.StatusInternalServerError, err.Error())
+	}
 }
 
 func (h *handler) createWithdrawal(c *fiber.Ctx) error {
@@ -60,9 +66,9 @@ func (h *handler) createWithdrawal(c *fiber.Ctx) error {
 	rw.UserID = c.Locals(h.cfg.Auth.ContextKey).(string)
 
 	switch err := h.s.CreateWithdrawal(rw); err {
-	case ErrWithdrawalAlreadyExist:
+	case ErrAlreadyExist:
 		return utils.SendJSONError(c, fiber.StatusConflict, err.Error())
-	case ErrWithdrawalsNotEnoughMoney:
+	case ErrNotEnoughMoney:
 		return utils.SendJSONError(c, fiber.StatusPaymentRequired, err.Error())
 	case nil:
 		return c.Status(fiber.StatusOK).SendString("")

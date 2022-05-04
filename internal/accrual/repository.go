@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const RepeatTimeout time.Duration = 1
+const RepeatTimeout time.Duration = 10
 
 type Repository struct {
 	ctx context.Context
@@ -29,7 +29,16 @@ func NewRepository(
 
 func (r *Repository) Get(orderID string) (*Response, error) {
 	r.l.Info("accrual: get info for id ", orderID)
-	resp, err := http.Get(r.url + "/api/orders/" + orderID)
+
+	client := http.Client{}
+	req, err := http.NewRequest("GET", r.url+"/api/orders/"+orderID, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header = http.Header{"Content-Type": []string{"application/json"}}
+
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}

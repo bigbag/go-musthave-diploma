@@ -6,13 +6,13 @@ import (
 )
 
 var (
-	ErrLoginAlreadyExist   = errors.New("user already exist")
+	ErrAlreadyExist        = errors.New("user already exist")
 	ErrUserNotFound        = errors.New("user not exist")
 	ErrNotValidCredentials = errors.New("not valid users credentials")
 )
 
 type RequestUser struct {
-	Login    string `json:"login"`
+	ID       string `json:"login"`
 	Password string `json:"password"`
 }
 
@@ -21,7 +21,6 @@ func (u *RequestUser) HexPassword() string {
 }
 
 type User struct {
-	ID       int
-	Login    string
+	ID       string
 	Password string
 }

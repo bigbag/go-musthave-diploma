@@ -6,10 +6,22 @@ import (
 )
 
 var (
-	ErrWithdrawalAlreadyExist    = errors.New("withdrawal already exist")
-	ErrWithdrawalsNotFound       = errors.New("withdrawals not found")
-	ErrWithdrawalsNotEnoughMoney = errors.New("not enough money for withdrawal")
+	ErrAlreadyExist        = errors.New("withdrawal already exist")
+	ErrWithdrawalsNotFound = errors.New("withdrawals not found")
+	ErrNotEnoughMoney      = errors.New("not enough money for withdrawal")
 )
+
+type Wallet struct {
+	ID         string
+	UserID     string
+	Balance    float64
+	Withdrawal float64
+}
+
+type ResponseWallet struct {
+	Balance    float64 `json:"current,omitempty"`
+	Withdrawal float64 `json:"withdrawn"`
+}
 
 type RequestWithdrawal struct {
 	ID     string  `json:"order"`

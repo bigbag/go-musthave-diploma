@@ -17,10 +17,7 @@ var (
 
 type Task struct {
 	OrderID string
-}
-
-func NewTask(orderID string) *Task {
-	return &Task{OrderID: orderID}
+	UserID  string
 }
 
 type Worker struct {
@@ -41,11 +38,15 @@ func NewWorker(
 }
 
 func (w *Worker) Init() error {
-	orderIDs, err := w.or.GetAllForChecking()
-	for _, orderID := range orderIDs {
-		w.Add(NewTask(orderID))
+	tasks, err := w.or.GetTaskForChecking()
+	if err != nil {
+		return err
 	}
-	return err
+
+	for _, task := range tasks {
+		w.Add(task)
+	}
+	return nil
 }
 
 func (w *Worker) Add(t *Task) error {
@@ -64,17 +65,22 @@ func (w *Worker) process(t *Task) error {
 	w.l.Info("worker: accrual info ", info)
 
 	if info.IsFinal {
-		w.l.Info("worker: save final state of order ", t.OrderID)
+		w.l.Info("worker: save final state of order: ", t.OrderID)
 
-		err = w.or.Update(
-			info.OrderID,
-			info.Status,
-			info.Amount,
-			info.IsFinal,
+		err = w.or.UpdateOrder(
+			&Order{
+				ID:      t.OrderID,
+				UserID:  t.UserID,
+				Amount:  info.Amount,
+				Status:  info.Status,
+				IsFinal: info.IsFinal,
+			},
 		)
 		if err != nil {
+			w.l.Info("worker: error on final state of order: ", err)
 			return err
 		}
+		return nil
 	}
 
 	w.d.DispatchIn(func() {
