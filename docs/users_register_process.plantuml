@@ -1,0 +1,7 @@
+@startuml
+Client -> Gophermart: Request with login and password
+Gophermart --> DB: Save new user
+Gophermart --> DB: Save new wallet
+Gophermart --> DB: Get user info
+Gophermart --> Client: Set auth cookie
+@enduml

@@ -1,0 +1,8 @@
+@startuml
+Client --> Worker: Add new task
+Worker --> DB: Get all new orders for processing
+Worker --> Accrual: Get accrual status for order
+Worker --> Worker: Process order after timeout
+Worker --> DB: Update order if accrual status not NEW
+Worker --> DB: Update wallet status if accrual status in (PROCESSED, INVALID)
+@enduml

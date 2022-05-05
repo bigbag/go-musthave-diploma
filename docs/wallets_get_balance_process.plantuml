@@ -1,0 +1,5 @@
+@startuml
+Client -> Gophermart: Request auth cookie
+Gophermart --> DB: Get user wallet
+Gophermart --> Client: json with wallet info
+@enduml
