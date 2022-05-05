@@ -1,0 +1,6 @@
+@startuml
+Client -> Gophermart: Request with withdrawal info plus auth cookie
+Gophermart --> DB: Create withdrawal
+Gophermart --> DB: Update wallet state
+Gophermart --> Client: Success or error
+@enduml

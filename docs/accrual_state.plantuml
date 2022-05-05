@@ -1,0 +1,8 @@
+@startuml
+[*] --> REGISTERED : register order
+REGISTERED -> PROCESSING: process order
+PROCESSING --> PROCESSED : set finale state
+PROCESSING --> INVALID: set finale state
+PROCESSED --> [*]  
+INVALID --> [*]
+@enduml
