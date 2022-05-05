@@ -1,0 +1,8 @@
+@startuml
+Client -> Gophermart: Request with order id plus auth cookie
+Gophermart --> DB: Get order with same order id
+Gophermart --> Gophermart: Check order parameters
+Gophermart --> DB: Create new order
+Gophermart --> Worker: Add new task for checking on accrual
+Gophermart --> Client: Success or error
+@enduml

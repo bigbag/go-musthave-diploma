@@ -1,0 +1,9 @@
+@startuml
+[*] --> NEW : init order
+NEW -> PROCESSING: start processing on worker
+PROCESSING --> PROCESSING: processing on worker
+PROCESSING --> PROCESSED: set finale state
+PROCESSING --> INVALID: set finale state
+PROCESSED --> [*]
+INVALID --> [*]
+@enduml

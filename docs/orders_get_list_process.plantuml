@@ -1,0 +1,5 @@
+@startuml
+Client -> Gophermart: Request auth cookie
+Gophermart --> DB: Get all user orders
+Gophermart --> Client: json with orders info
+@enduml
